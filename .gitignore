@@ -93,3 +93,7 @@ dump.rdb
 *.db
 _to_delete/
 results/field_labelling_annotator2_claude.csv
+dump.rdb
+*.db
+_to_delete/
+results/field_labelling_annotator2_claude.csv
