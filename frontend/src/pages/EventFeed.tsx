@@ -14,6 +14,7 @@ const OUTCOME_CFG: Record<string, { label: string; color: string; bg: string; bo
   duplicate: { label: 'Duplicate', color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20', dot: '#f59e0b' },
   pending: { label: 'Pending', color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20', dot: '#533afd' },
   dlq: { label: 'DLQ', color: 'text-danger', bg: 'bg-danger/10', border: 'border-danger/20', dot: '#dc2626' },
+  held: { label: 'Held', color: 'text-slate-500', bg: 'bg-slate-500/10', border: 'border-slate-500/20', dot: '#64748b' },
 };
 
 function OutcomeIcon({ outcome }: { outcome: string }) {

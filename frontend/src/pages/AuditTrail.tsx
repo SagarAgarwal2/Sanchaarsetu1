@@ -10,6 +10,7 @@ const OUTCOME_CFG: Record<string, { color: string; bg: string; border: string }>
   duplicate: { color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
   pending: { color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' },
   dlq: { color: 'text-danger', bg: 'bg-danger/10', border: 'border-danger/20' },
+  held: { color: 'text-slate-500', bg: 'bg-slate-500/10', border: 'border-slate-500/20' },
 };
 
 const PER_PAGE = 25;

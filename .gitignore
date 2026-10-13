@@ -78,3 +78,18 @@ __pycache__
 *.tmp
 *.temp
 .tmp/
+
+# Registry data and derived files are not redistributed
+data/
+results/*_LOCAL_SMOKE_TEST.json
+results/conflict_pairs_to_label.csv
+results/conflict_pairs_draft_labels_claude.csv
+results/mac_run_*.log
+results/mac_run_status.txt
+dump.rdb
+# kept out until both annotators have finished, so the human labelling stays independent
+results/field_labelling_annotator2_claude.csv
+dump.rdb
+*.db
+_to_delete/
+results/field_labelling_annotator2_claude.csv

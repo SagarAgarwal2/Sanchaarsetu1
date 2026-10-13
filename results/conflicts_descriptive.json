@@ -1,0 +1,76 @@
+{
+  "ground_truth": "automatic categories (circular for the field-level rule; not for the paper)",
+  "rules": {
+    "entity_level_window": {
+      "substantive_detected": 5761,
+      "substantive_total": 5761,
+      "substantive_detected_share": 1.0,
+      "false_conflicts_formatting": 1845,
+      "formatting_total": 1845,
+      "false_conflicts_formatting_share": 1.0,
+      "false_conflicts_unrelated": 1000,
+      "unrelated_total": 1000
+    },
+    "exact_comparison": {
+      "substantive_detected": 5761,
+      "substantive_total": 5761,
+      "substantive_detected_share": 1.0,
+      "false_conflicts_formatting": 1845,
+      "formatting_total": 1845,
+      "false_conflicts_formatting_share": 1.0,
+      "false_conflicts_unrelated": 0,
+      "unrelated_total": 1000
+    },
+    "field_level_normalised": {
+      "substantive_detected": 5761,
+      "substantive_total": 5761,
+      "substantive_detected_share": 1.0,
+      "false_conflicts_formatting": 0,
+      "formatting_total": 1845,
+      "false_conflicts_formatting_share": 0.0,
+      "false_conflicts_unrelated": 0,
+      "unrelated_total": 1000
+    }
+  },
+  "registry_pairs": {
+    "pairs": 16642,
+    "promoters": 1211,
+    "by_auto_category": {
+      "identical": 9036,
+      "substantive": 5761,
+      "formatting_variant": 1845
+    },
+    "by_attribute": {
+      "promoter_address": {
+        "formatting_variant": 475,
+        "identical": 631,
+        "substantive": 2430
+      },
+      "promoter_gstin": {
+        "formatting_variant": 5,
+        "identical": 961,
+        "substantive": 63
+      },
+      "promoter_name": {
+        "formatting_variant": 674,
+        "identical": 2054,
+        "substantive": 808
+      },
+      "promoter_pin_code": {
+        "formatting_variant": 0,
+        "identical": 3146,
+        "substantive": 390
+      },
+      "signatory_address": {
+        "formatting_variant": 202,
+        "identical": 392,
+        "substantive": 1061
+      },
+      "signatory_name": {
+        "formatting_variant": 489,
+        "identical": 1852,
+        "substantive": 1009
+      }
+    }
+  }
+}

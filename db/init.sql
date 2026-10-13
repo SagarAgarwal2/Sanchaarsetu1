@@ -1,6 +1,5 @@
 -- Initialize extensions
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-CREATE EXTENSION IF NOT EXISTS vector;
 
 -- Tables
 CREATE TABLE IF NOT EXISTS audit (
@@ -14,8 +13,9 @@ CREATE TABLE IF NOT EXISTS audit (
   outcome TEXT,
   previous_hash TEXT,
   chained_hash TEXT,
-  created_at TIMESTAMP DEFAULT now()
+  created_at TIMESTAMPTZ DEFAULT now()
 );
+CREATE INDEX IF NOT EXISTS idx_audit_ubid ON audit(ubid);
 
 CREATE TABLE IF NOT EXISTS departments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS business_departments (
   business_id UUID NOT NULL REFERENCES businesses(id),
   department_id UUID NOT NULL REFERENCES departments(id),
   dept_record_id TEXT,
+  link_status TEXT NOT NULL DEFAULT 'confirmed' CHECK (link_status IN ('candidate', 'confirmed', 'rejected')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(business_id, department_id)
 );
@@ -62,13 +63,14 @@ CREATE TABLE IF NOT EXISTS propagation_events (
   destination_system TEXT NOT NULL,
   payload_hash TEXT,
   idempotency_key TEXT UNIQUE NOT NULL,
-  outcome TEXT NOT NULL DEFAULT 'pending' CHECK (outcome IN ('success', 'failure', 'duplicate', 'pending', 'dlq', 'conflict')),
+  outcome TEXT NOT NULL DEFAULT 'pending' CHECK (outcome IN ('success', 'failure', 'duplicate', 'pending', 'dlq', 'conflict', 'held')),
   direction TEXT NOT NULL DEFAULT 'dept_to_sws' CHECK (direction IN ('sws_to_dept', 'dept_to_sws')),
   conflict_flag BOOLEAN NOT NULL DEFAULT FALSE,
   resolution_applied TEXT,
   retry_count INTEGER NOT NULL DEFAULT 0,
   error_message TEXT,
   propagation_ms INTEGER,
+  payload JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -100,7 +102,7 @@ CREATE TABLE IF NOT EXISTS schema_mappings (
   reviewed_by TEXT,
   reviewed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(department_id, sws_field, version)
+  UNIQUE(department_id, sws_field, dept_field, version)
 );
 
 CREATE INDEX IF NOT EXISTS idx_propagation_events_ubid ON propagation_events(ubid);
@@ -139,22 +141,22 @@ INSERT INTO propagation_events (ubid, event_type, source_system, destination_sys
   ('UBID-KA-2024-001847', 'address_update', 'SWS', 'KFES', 'sha256:a3f4b2c1d8e9f0a1', 'UBID-KA-2024-001847:address_update:1746230403', 'failure', false, NULL, 3, NULL, 'sws_to_dept', 'Connection timeout to KFES API after 30s'),
   ('UBID-KA-2024-002341', 'signatory_update', 'SEA', 'SWS', 'sha256:b4c5d6e7f8a9b0c1', 'UBID-KA-2024-002341:signatory_update:1746231000', 'conflict', true, 'manual_review', 0, NULL, 'dept_to_sws', NULL),
   ('UBID-KA-2024-003892', 'license_renewal', 'SWS', 'DFB', 'sha256:c5d6e7f8a9b0c1d2', 'UBID-KA-2024-003892:license_renewal:1746231600', 'success', false, NULL, 0, 156, 'sws_to_dept', NULL),
-  ('UBID-KA-2024-004111', 'gstin_update', 'CTD', 'SWS', 'sha256:d6e7f8a9b0c1d2e3', 'UBID-KA-2024-004111:gstin_update:1746232200', 'success', false, NULL, 0, 98, 'dept_to_sws', NULL),
+  ('UBID-KA-2024-003892', 'gstin_update', 'CTD', 'SWS', 'sha256:d6e7f8a9b0c1d2e3', 'UBID-KA-2024-004111:gstin_update:1746232200', 'success', false, NULL, 0, 98, 'dept_to_sws', NULL),
   ('UBID-KA-2024-005123', 'compliance_status', 'KPCB', 'SWS', 'sha256:e7f8a9b0c1d2e3f4', 'UBID-KA-2024-005123:compliance_status:1746232800', 'success', false, NULL, 0, 723, 'dept_to_sws', NULL),
   ('UBID-KA-2024-006789', 'noc_issued', 'KFES', 'SWS', 'sha256:f8a9b0c1d2e3f4a5', 'UBID-KA-2024-006789:noc_issued:1746233400', 'duplicate', false, NULL, 0, NULL, 'dept_to_sws', NULL),
   ('UBID-KA-2024-001847', 'owner_update', 'SWS', 'CTD', 'sha256:a9b0c1d2e3f4a5b6', 'UBID-KA-2024-001847:owner_update:1746234000', 'success', false, NULL, 0, 301, 'sws_to_dept', NULL),
   ('UBID-KA-2024-002341', 'address_update', 'DFB', 'SWS', 'sha256:b0c1d2e3f4a5b6c7', 'UBID-KA-2024-002341:address_update:1746234600', 'conflict', true, 'sws_wins', 0, 445, 'dept_to_sws', NULL),
   ('UBID-KA-2024-008234', 'registration_new', 'SWS', 'SEA', 'sha256:c1d2e3f4a5b6c7d8', 'UBID-KA-2024-008234:registration_new:1746235200', 'pending', false, NULL, 0, NULL, 'sws_to_dept', NULL),
   ('UBID-KA-2024-003892', 'address_update', 'SWS', 'BBMP', 'sha256:d2e3f4a5b6c7d8e9', 'UBID-KA-2024-003892:address_update:1746235800', 'success', false, NULL, 0, 1823, 'sws_to_dept', NULL),
-  ('UBID-KA-2024-004567', 'license_new', 'SWS', 'DIS', 'sha256:e3f4a5b6c7d8e9f0', 'UBID-KA-2024-004567:license_new:1746236400', 'failure', false, NULL, 4, NULL, 'sws_to_dept', 'Connection timeout to DIS API after 30s'),
+  ('UBID-KA-2024-005123', 'license_new', 'SWS', 'DIS', 'sha256:e3f4a5b6c7d8e9f0', 'UBID-KA-2024-004567:license_new:1746236400', 'failure', false, NULL, 4, NULL, 'sws_to_dept', 'Connection timeout to DIS API after 30s'),
   ('UBID-KA-2024-005123', 'signatory_update', 'SWS', 'DFB', 'sha256:f4a5b6c7d8e9f0a1', 'UBID-KA-2024-005123:signatory_update:1746237000', 'success', false, NULL, 0, 267, 'sws_to_dept', NULL)
 ON CONFLICT (idempotency_key) DO NOTHING;
 
 INSERT INTO conflicts (ubid, field_name, sws_value, dept_value, resolution_policy, status, winning_value, resolved_by, resolved_at, resolution_reason) VALUES
   ('UBID-KA-2024-002341', 'signatory_name', 'Venkata Reddy', 'V. Reddy & Sons', 'manual_review', 'pending_review', NULL, NULL, NULL, NULL),
   ('UBID-KA-2024-002341', 'registered_address', '8/A KIADB Industrial Estate, Bommasandra', 'Plot 8A, KIADB Bommasandra, Bangalore 560099', 'sws_wins', 'resolved', '8/A KIADB Industrial Estate, Bommasandra', 'system:sws_wins_policy', now() - interval '1 hour', 'SWS value accepted for field "registered_address" via SWS-wins policy (auto-resolution).'),
-  ('UBID-KA-2024-004890', 'pan_number', 'AAHDA4567L', 'AAHDA4567M', 'manual_review', 'pending_review', NULL, NULL, NULL, NULL),
-  ('UBID-KA-2024-006789', 'owner_phone', '9845012345', '9845012346', 'last_write_wins', 'resolved', '9845012346', 'system:last_write_wins_policy', now() - interval '30 minutes', 'Last write value accepted')
+  ('UBID-KA-2024-008234', 'pan', 'AAHDA4567L', 'AAHDA4567M', 'manual_review', 'pending_review', NULL, NULL, NULL, NULL),
+  ('UBID-KA-2024-006789', 'employee_count', '42', '45', 'last_write_wins', 'resolved', '45', 'system:last_write_wins_policy', now() - interval '30 minutes', 'Last write value accepted')
 ON CONFLICT DO NOTHING;
 
 WITH dfb AS (SELECT id FROM departments WHERE code = 'DFB')
@@ -237,3 +239,112 @@ CREATE TABLE IF NOT EXISTS dlq_messages (
 
 CREATE INDEX IF NOT EXISTS idx_dlq_messages_created_at ON dlq_messages(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_dlq_messages_replayed_at ON dlq_messages(replayed_at);
+
+-- ---------------------------------------------------------------------------
+-- Field registry: every field of every connected system, with the metadata the
+-- matcher uses. system_code is 'SWS' or a department code.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS schema_fields (
+  id SERIAL PRIMARY KEY,
+  system_code TEXT NOT NULL,
+  field_name TEXT NOT NULL,
+  description TEXT,
+  data_type TEXT,
+  sample_values TEXT[],
+  UNIQUE(system_code, field_name)
+);
+
+-- Fields that could not be translated; values are deliberately not stored.
+CREATE TABLE IF NOT EXISTS unmapped_fields (
+  id SERIAL PRIMARY KEY,
+  department TEXT NOT NULL,
+  direction TEXT NOT NULL,
+  field_name TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  ubid TEXT,
+  propagation_event_id UUID,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_unmapped_fields_dept ON unmapped_fields(department, field_name);
+
+-- What each simulated destination has received, keyed by idempotency key.
+CREATE TABLE IF NOT EXISTS destination_receipts (
+  idempotency_key TEXT NOT NULL,
+  destination TEXT NOT NULL,
+  ubid TEXT,
+  times_received INTEGER NOT NULL DEFAULT 1,
+  first_received_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (idempotency_key, destination)
+);
+
+INSERT INTO schema_fields (system_code, field_name, description, data_type) VALUES
+  ('SWS', 'business_name', 'Registered name of the business', 'text'),
+  ('SWS', 'registered_address', 'Registered office or premises address', 'text'),
+  ('SWS', 'owner_name', 'Name of the proprietor, partner or director', 'text'),
+  ('SWS', 'signatory_name', 'Name of the authorised signatory', 'text'),
+  ('SWS', 'signatory_pan', 'PAN of the authorised signatory', 'identifier'),
+  ('SWS', 'pan', 'Permanent account number of the business', 'identifier'),
+  ('SWS', 'gstin', 'GST identification number', 'identifier'),
+  ('SWS', 'employee_count', 'Total number of persons employed', 'integer'),
+  ('SWS', 'nature_of_business', 'Activity or line of business', 'text'),
+  ('SWS', 'registration_date', 'Date of registration or commencement', 'date'),
+  ('SWS', 'license_expiry', 'Date until which the licence is valid', 'date'),
+  -- Factories: names as used in the seeded mappings
+  ('DFB', 'factory_name', 'Name of the factory', 'text'),
+  ('DFB', 'occupier_name', 'Name of the occupier of the factory', 'text'),
+  ('DFB', 'factory_address', 'Full postal address of the factory', 'text'),
+  ('DFB', 'gst_number', 'GST registration number', 'identifier'),
+  ('DFB', 'pan_card_no', 'PAN of the occupier or company', 'identifier'),
+  ('DFB', 'total_workers', 'Maximum number of workers employed', 'integer'),
+  ('DFB', 'certificate_validity', 'Licence valid up to', 'date'),
+  ('DFB', 'manager_name', 'Name of the manager', 'text'),
+  -- Shops and establishments: labels from Form A, Karnataka Shops and Commercial Establishments Rules
+  ('SEA', 'establishment_name', 'Name of the establishment', 'text'),
+  ('SEA', 'postal_address', 'Postal address of the establishment', 'text'),
+  ('SEA', 'proprietor_name', 'Name of the proprietor, managing partner or director', 'text'),
+  ('SEA', 'manager_name', 'Name of the head of the unit, authorised signatory or manager', 'text'),
+  ('SEA', 'nature_of_business', 'Nature of business', 'text'),
+  ('SEA', 'commencement_date', 'Date of commencement of business', 'date'),
+  ('SEA', 'employees_total', 'Number of employees, total', 'integer'),
+  -- Labour
+  ('DOL', 'establishment_name', 'Name of the establishment', 'text'),
+  ('DOL', 'employer_name', 'Name of the employer', 'text'),
+  ('DOL', 'employer_address', 'Address of the establishment', 'text'),
+  ('DOL', 'workforce_strength', 'Number of workers', 'integer'),
+  ('DOL', 'proprietor_pan', 'PAN of the employer', 'identifier'),
+  -- Municipal trade licence: names follow the BBMP trade-licence data
+  ('BBMP', 'trade_name', 'Trade name', 'text'),
+  ('BBMP', 'property_address', 'Address of the premises', 'text'),
+  ('BBMP', 'applicant_full_name', 'Name of the applicant', 'text'),
+  ('BBMP', 'taxpayer_gstin', 'GSTIN of the trader', 'identifier'),
+  ('BBMP', 'trade_type', 'Major trade category', 'text'),
+  ('BBMP', 'licence_valid_till', 'Licence valid till', 'date'),
+  -- Commercial taxes
+  ('CTD', 'legal_name', 'Legal name of the business', 'text'),
+  ('CTD', 'principal_place_of_business', 'Address of the principal place of business', 'text'),
+  ('CTD', 'gstin', 'GSTIN', 'identifier'),
+  ('CTD', 'pan', 'PAN', 'identifier'),
+  ('CTD', 'authorised_signatory', 'Name of the authorised signatory', 'text'),
+  -- Pollution control board
+  ('KPCB', 'unit_name', 'Name of the industry or unit', 'text'),
+  ('KPCB', 'unit_address', 'Location of the unit', 'text'),
+  ('KPCB', 'occupier_name', 'Name of the occupier', 'text'),
+  ('KPCB', 'industry_category', 'Category of the industry', 'text'),
+  ('KPCB', 'consent_validity', 'Consent valid up to', 'date'),
+  -- Fire services
+  ('KFES', 'building_name', 'Name of the building or premises', 'text'),
+  ('KFES', 'premises_address', 'Address of the premises', 'text'),
+  ('KFES', 'owner_name', 'Name of the owner or occupier', 'text'),
+  ('KFES', 'noc_valid_upto', 'No-objection certificate valid up to', 'date'),
+  -- Industrial safety
+  ('DIS', 'unit_name', 'Name of the unit', 'text'),
+  ('DIS', 'address', 'Address of the unit', 'text'),
+  ('DIS', 'occupier', 'Name of the occupier', 'text'),
+  ('DIS', 'workers_employed', 'Number of workers employed', 'integer')
+ON CONFLICT (system_code, field_name) DO NOTHING;
+
+-- Demo identifier links: each seeded business is linked to its record in every department.
+INSERT INTO business_departments (business_id, department_id, dept_record_id, link_status)
+SELECT b.id, d.id, d.code || '-' || lpad(row_number() OVER (PARTITION BY d.id ORDER BY b.ubid)::text, 5, '0'), 'confirmed'
+FROM businesses b CROSS JOIN departments d
+ON CONFLICT (business_id, department_id) DO NOTHING;

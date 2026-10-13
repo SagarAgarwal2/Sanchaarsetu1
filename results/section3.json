@@ -1,0 +1,104 @@
+{
+  "company_registrations": {
+    "records": 379386,
+    "unique_cin": 379386,
+    "cin_well_formed_share": 0.99999,
+    "karnataka_records": 28415,
+    "period": {
+      "from": "2023-11-01",
+      "to": "2025-09-30"
+    },
+    "columns": [
+      "id",
+      "cin",
+      "company_class",
+      "company_name",
+      "registration_date",
+      "company_type",
+      "act_code",
+      "act_description"
+    ]
+  },
+  "shops_establishments": {
+    "records": 314418,
+    "columns": 17,
+    "wards": 198,
+    "registration_period": {
+      "from": "1944-05-05",
+      "to": "2026-08-21"
+    },
+    "address_has_pin_share": 0.9993,
+    "nature_of_business_distinct": 138426,
+    "nature_of_business_most_frequent": "OTHERS",
+    "nature_of_business_most_frequent_count": 22551
+  },
+  "trade_licences": {
+    "filings": 40482,
+    "renewals": 32112,
+    "period": {
+      "from": "2014-03-01",
+      "to": "2026-03-09"
+    },
+    "businesses_name_pin": 8834,
+    "businesses_with_2plus_filings": 5404,
+    "address_text_varies": 655,
+    "address_text_varies_share": 0.1212,
+    "definition": "business = (normalised trade name, PIN); address text = door number + street + area, upper-cased, whitespace collapsed"
+  },
+  "rera": {
+    "projects": 8923,
+    "period": {
+      "from": "2017-08-19",
+      "to": "2026-09-04"
+    },
+    "pan_present_share": 1.0,
+    "pan_well_formed_share": 0.9992,
+    "promoters_by_pan": 5387,
+    "promoters_with_2plus_projects": 1211,
+    "projects_of_those_promoters": 4747,
+    "gstin_stated": 3429,
+    "gstin_malformed_share": 0.1187,
+    "gstin_not_containing_pan_share": 0.1289,
+    "variation_same_pan": {
+      "promoter_address": {
+        "promoters_with_attribute_in_2plus_filings": 1211,
+        "promoters_where_it_varies": 1040,
+        "share": 0.8588
+      },
+      "signatory_address": {
+        "promoters_with_attribute_in_2plus_filings": 556,
+        "promoters_where_it_varies": 442,
+        "share": 0.795
+      },
+      "signatory_name": {
+        "promoters_with_attribute_in_2plus_filings": 1129,
+        "promoters_where_it_varies": 519,
+        "share": 0.4597
+      },
+      "promoter_name": {
+        "promoters_with_attribute_in_2plus_filings": 1211,
+        "promoters_where_it_varies": 452,
+        "share": 0.3732
+      },
+      "promoter_pin_code": {
+        "promoters_with_attribute_in_2plus_filings": 1211,
+        "promoters_where_it_varies": 264,
+        "share": 0.218
+      },
+      "promoter_gstin": {
+        "promoters_with_attribute_in_2plus_filings": 470,
+        "promoters_where_it_varies": 55,
+        "share": 0.117
+      }
+    },
+    "normalisation": "lower case, everything except letters and digits removed"
+  },
+  "cross_registry": {
+    "licence_businesses_considered": 8813,
+    "licence_matched_to_shops_name_pin": 1170,
+    "licence_matched_share": 0.1328,
+    "ka_companies_considered": 28351,
+    "ka_companies_name_only_matches_in_shops": 3515,
+    "note": "name-only linking over-matches; treat as an upper bound"
+  }
+}

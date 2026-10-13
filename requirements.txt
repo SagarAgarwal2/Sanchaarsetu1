@@ -7,3 +7,5 @@ kafka-python==2.0.2
 asyncpg==0.28.0
 python-dotenv==1.0.0
 redis>=4.5.0
+numpy>=1.24
+sentence-transformers>=3.0,<4

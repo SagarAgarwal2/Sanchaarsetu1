@@ -8,8 +8,9 @@ A complete reference implementation of SanchaarSetu: an AI-powered bidirectional
 - **Idempotency**: Redis-backed deduplication (at-least-once semantics)
 - **Semantic Schema Mapping**: SentenceTransformers + pgvector for automatic field matching
 - **Conflict Detection & Resolution**: SWS-wins, last-write-wins, and manual-review policies
-- **Change Data Capture (CDC)**: Real-time DB log tailing using **Debezium**.
-- **Stateful Orchestration**: Complex multi-step sagas and infinite retries powered by **Temporal.io**.
+- **Tiered ingestion**: webhooks, periodic polling and snapshot comparison (`change_events`). Log-based CDC (Debezium) and durable workflows (Temporal) are planned, not implemented.
+- **Field-level conflict detection**: only different sources disagreeing on the same field raise a conflict; per-field policies (SWS-wins, last-write-wins, manual review).
+- **Identifier registry**: updates are delivered only over a confirmed UBID-to-department-record link (`business_departments`).
 - **Audit Trail**: Append-only Postgres log with **Tamper-Evident Hash Chaining**
 - **Kafka Message Queue**: Durable at-least-once delivery with **Exponential Backoff & Dead Letter Queues (DLQ)**
 - **Security & Privacy**: PII Scrubbing, Role-Based Access Control (RBAC), and Rate Limiting
@@ -238,6 +239,42 @@ Edit `docker-compose.yml` to customize:
 - Postgres credentials
 - Redis URL
 - Environment variables
+
+## Checks for the propagation pipeline
+
+Unit tests (no services needed):
+
+```bash
+pip install pytest numpy
+python -m pytest tests/
+```
+
+End-to-end checks against local Postgres and Redis, using an in-process stand-in for Kafka:
+
+```bash
+createdb sanchaar && psql -d sanchaar -f db/init.sql
+POSTGRES_DSN=postgres://postgres@localhost:5432/sanchaar REDIS_URL=redis://localhost:6379 \
+  RETRY_DELAYS=0.5,1,1.5,2 python -m tests.run_local &
+python -m tests.check_fixes
+```
+
+## Experiments for the paper
+
+Install `requirements-eval.txt`, put the four registry files in `data/raw/` (names in `eval/common.py`), then:
+
+| Step | Command | Produces |
+|---|---|---|
+| Section 3 statistics | `python -m eval.build_dataset` | `results/section3.json` |
+| Labelling workbook | `python -m eval.make_label_sheet` | `results/field_labelling.xlsx` (two annotators fill it independently) |
+| Table 5, Fig. 2 | `python -m eval.eval_matching` | `results/table5_matching.json`, `results/fig2_pr_curves.pdf` (needs the embedding model) |
+| Conflict sample | `python -m eval.eval_conflicts --make-sample 300` | `results/conflict_pairs_to_label.csv` (label same/different) |
+| Table 6 | `python -m eval.eval_conflicts --labels results/conflict_pairs_to_label.csv` | `results/table6_conflicts.json` |
+| Table 7 | `python -m eval.load_test` (fresh database, full Docker stack running) | `results/table7_delivery.json` |
+| Field samples | `python -m eval.load_field_samples` | sample values in `schema_fields` |
+
+After `eval_matching`, set `AUTO_MAP_THRESHOLD` in `docker-compose.yml` to the reported operating threshold.
+
+The database schema changed in this version. If you ran Docker Compose before, reset the volume once with `docker compose down -v`.
 
 ## Local Development (Without Docker)
 

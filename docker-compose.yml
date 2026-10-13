@@ -68,10 +68,16 @@ services:
     command: uvicorn app.full_main:app --host 0.0.0.0 --port 8000
     volumes:
       - ./:/app
+      - hf_cache:/root/.cache/huggingface
     environment:
       KAFKA_BOOTSTRAP: redpanda:9092
       REDIS_URL: redis://redis:6379
       POSTGRES_DSN: postgres://postgres:postgres@postgres:5432/sanchaar
+      # Set to the embedding_full operating_threshold reported by eval/eval_matching.py
+      AUTO_MAP_THRESHOLD: "0.85"
+      REVIEW_THRESHOLD: "0.50"
+      # Retry back-off in seconds; the run script shortens it only for the fault-injection checks
+      RETRY_DELAYS: ${RETRY_DELAYS:-2,4,8,16}
     ports:
       - "8000:8000"
     depends_on:
@@ -97,3 +103,4 @@ services:
 
 volumes:
   postgres_data:
+  hf_cache:

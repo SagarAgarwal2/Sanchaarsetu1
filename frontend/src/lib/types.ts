@@ -34,7 +34,7 @@ export type PropagationEvent = {
   destination_system: string;
   payload_hash: string | null;
   idempotency_key: string;
-  outcome: 'success' | 'failure' | 'duplicate' | 'pending' | 'dlq' | 'conflict';
+  outcome: 'success' | 'failure' | 'duplicate' | 'pending' | 'dlq' | 'conflict' | 'held';
   direction: 'sws_to_dept' | 'dept_to_sws';
   conflict_flag: boolean;
   resolution_applied: string | null;

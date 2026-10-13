@@ -31,6 +31,7 @@ const OUTCOME_CFG = {
   duplicate: { color: 'text-amber-500', dot: '#f59e0b' },
   pending: { color: 'text-primary', dot: '#533afd' },
   dlq: { color: 'text-danger', dot: '#dc2626' },
+  held: { color: 'text-slate-500', dot: '#64748b' },
 };
 
 function MiniBar({ label, count, total, color }: { label: string; count: number; total: number; color: string }) {
